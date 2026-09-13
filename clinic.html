@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Clinic Meds</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --primary:#2b3a5c;
+  --bg:#eee7db;
+  --surface:#ffffff;
+  --border:#241f1a;
+  --border-light:#d9d0c0;
+  --text:#241f1a;
+  --muted:#5a5348;
+  --shadow:5px 5px 0 #241f1a;
+  --shadow-sm:3px 3px 0 #241f1a;
+  --green:#5c6b2e;
+  --green-bg:#e4e8d4;
+  --green-border:#5c6b2e;
+  --red:#7a2e34;
+  --red-bg:#f1dcdb;
+}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1.5px solid var(--border-light);padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:center}
+.app-title{font-family:Georgia,'Times New Roman',serif;font-size:1.5rem;font-weight:normal;color:var(--text);letter-spacing:-.01em}
+
+/* CONTROL BAR */
+.ctrl-bar{background:var(--bg);border-bottom:1.5px solid var(--border-light);padding:9px 14px 8px;position:sticky;top:53px;z-index:90;display:flex;align-items:center;gap:8px}
+.cat-wrap{position:relative}
+.cat-btn{border:2px solid var(--border);background:var(--surface);border-radius:50px;padding:6px 13px;font-size:.8rem;font-weight:700;color:var(--text);cursor:pointer;white-space:nowrap;box-shadow:var(--shadow-sm);transition:transform .1s,box-shadow .1s;font-family:inherit}
+.cat-btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--border)}
+.cat-dropdown{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:210px;background:var(--surface);border:2px solid var(--border);border-radius:14px;box-shadow:var(--shadow);z-index:200;overflow:hidden}
+.cat-dropdown.open{display:block}
+.cat-item{padding:10px 16px;font-size:.85rem;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border-light);color:var(--text)}
+.cat-item:last-child{border-bottom:none}
+.cat-item.active{color:var(--primary);font-weight:800}
+.cat-item:hover{background:var(--bg)}
+
+.shuffle-pill{border:2px solid var(--border-light);background:transparent;border-radius:50px;padding:6px 11px;font-size:.75rem;font-weight:700;cursor:pointer;color:var(--muted);white-space:nowrap;transition:background .15s,color .15s,border-color .15s;font-family:inherit}
+.shuffle-pill.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.shuffle-pill:active{opacity:.7}
+
+.mode-toggle{margin-left:auto;display:flex;gap:5px;flex-shrink:0}
+.mode-btn{border:2px solid var(--border-light);background:var(--bg);border-radius:50px;color:var(--muted);font-size:.78rem;font-weight:700;cursor:pointer;padding:6px 12px;white-space:nowrap;transition:transform .1s,background .15s,color .15s,border-color .15s;font-family:inherit}
+.mode-btn.active{background:var(--text);color:var(--surface);border-color:var(--text)}
+.mode-btn:active{transform:scale(.95)}
+
+/* MAIN */
+#main{padding:14px 14px 120px;max-width:580px;margin:0 auto}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* QUIZ */
+.q-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.q-counter{font-family:'Courier New',Courier,monospace;font-size:.73rem;font-weight:700;color:var(--muted);letter-spacing:.3px}
+.q-score{font-family:'Courier New',Courier,monospace;font-size:.73rem;font-weight:700;color:var(--text);background:var(--surface);border:1.5px solid var(--border-light);border-radius:50px;padding:3px 10px}
+
+.quiz-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:20px 18px 16px;animation:fadeIn .25s ease both}
+.q-drug{display:inline-block;font-family:'Courier New',Courier,monospace;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);background:var(--bg);border-radius:50px;padding:3px 12px;margin-bottom:6px}
+.q-type{display:inline-block;font-family:'Courier New',Courier,monospace;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--primary);border:1.5px solid var(--primary);border-radius:50px;padding:2px 8px;margin-bottom:12px;margin-left:6px;opacity:.7}
+.q-text{font-size:.96rem;font-weight:700;line-height:1.5;color:var(--text);margin-bottom:16px}
+
+.opt-btn{width:100%;text-align:left;padding:12px 14px;border-radius:10px;border:2px solid var(--border);box-shadow:var(--shadow-sm);background:var(--surface);font-size:.86rem;font-weight:600;cursor:pointer;margin-bottom:9px;line-height:1.4;transition:transform .1s,box-shadow .1s;color:var(--text);font-family:inherit;display:flex;align-items:flex-start;gap:10px}
+.opt-btn:active:not(:disabled){transform:translate(3px,3px);box-shadow:0 0 0 var(--border)}
+.opt-btn:disabled{cursor:default}
+.opt-btn.correct{background:var(--green-bg);border-color:var(--green-border);box-shadow:none;color:var(--green)}
+.opt-btn.wrong{background:var(--red-bg);border-color:var(--red);box-shadow:none;color:var(--red)}
+.opt-letter{font-family:'Courier New',Courier,monospace;font-weight:800;font-size:.76rem;background:var(--bg);border-radius:4px;padding:2px 5px;flex-shrink:0;margin-top:1px;color:var(--muted)}
+.opt-btn.correct .opt-letter{background:var(--green);color:#fff}
+.opt-btn.wrong .opt-letter{background:var(--red);color:#fff}
+
+/* RESULT SHEET */
+#result-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:2px solid var(--border);border-radius:22px 22px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.1,.64,1);z-index:300;box-shadow:0 -4px 24px rgba(0,0,0,.18)}
+#result-sheet.show{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--border-light);border-radius:2px;margin:0 auto 12px}
+.sheet-badge{font-size:1rem;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.sheet-badge.correct{color:var(--green)}
+.sheet-badge.wrong{color:var(--red)}
+.sheet-explain{font-size:.84rem;line-height:1.6;color:var(--muted);margin-bottom:16px}
+.sheet-continue{width:100%;padding:14px;border-radius:10px;border:none;font-family:inherit;font-size:.92rem;font-weight:800;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.2);transition:transform .1s,box-shadow .1s;color:#fff}
+.sheet-continue:active{transform:translateY(2px);box-shadow:none}
+.sheet-continue.correct{background:var(--green)}
+.sheet-continue.wrong{background:var(--red)}
+
+/* SCORE SCREEN */
+.score-wrap{text-align:center;padding:50px 16px;animation:fadeIn .3s ease both}
+.score-big{font-family:Georgia,serif;font-size:3.8rem;font-weight:bold;color:var(--text);margin-bottom:4px;line-height:1}
+.score-pct{font-size:1.2rem;font-weight:700;color:var(--muted);margin-bottom:10px}
+.score-msg{font-size:.92rem;color:var(--muted);margin-bottom:28px}
+.restart-btn{background:var(--primary);color:#fff;border:2px solid var(--border);box-shadow:var(--shadow-sm);border-radius:50px;padding:14px 36px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:inherit;transition:transform .1s,box-shadow .1s}
+.restart-btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--border)}
+
+/* FLASHCARD */
+.f-counter{text-align:center;font-family:'Courier New',Courier,monospace;font-size:.73rem;color:var(--muted);margin-bottom:12px;font-weight:700;letter-spacing:.3px}
+
+.f-card{cursor:pointer;margin-bottom:14px;animation:fadeIn .22s ease both}
+.f-card-inner{position:relative;width:100%;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.34,1.05,.64,1)}
+.f-card-inner.flipped{transform:rotateY(180deg)}
+.f-front,.f-back{width:100%;background:var(--surface);border:2px solid var(--border);border-radius:22px;box-shadow:var(--shadow);backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:28px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;min-height:300px}
+.f-back{position:absolute;top:0;left:0;height:100%;transform:rotateY(180deg);overflow-y:auto}
+
+.f-drug-tag{font-family:'Courier New',Courier,monospace;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);background:var(--bg);border-radius:50px;padding:4px 14px;margin-bottom:6px}
+.f-type-tag{font-family:'Courier New',Courier,monospace;font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--primary);border:1.5px solid var(--primary);border-radius:50px;padding:2px 8px;margin-bottom:18px;opacity:.7}
+.f-question{font-family:Georgia,serif;font-size:1.05rem;font-weight:bold;line-height:1.55;color:var(--text);margin-bottom:22px}
+.f-hint{font-size:.7rem;color:var(--muted);font-style:italic;margin-top:auto}
+
+.f-answer-label{font-family:'Courier New',Courier,monospace;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px}
+.f-answer{font-family:Georgia,serif;font-size:1.05rem;font-weight:bold;color:var(--green);line-height:1.45;margin-bottom:14px}
+.f-explain{font-size:.82rem;line-height:1.6;color:var(--muted);margin-bottom:10px}
+
+/* FLASH NAV */
+.flash-nav{display:flex;gap:8px;align-items:center;justify-content:center}
+.nav-btn{background:var(--bg);border:2px solid var(--border);border-radius:50px;padding:10px 18px;font-size:.82rem;font-weight:700;cursor:pointer;color:var(--text);box-shadow:var(--shadow-sm);transition:transform .1s,box-shadow .1s;font-family:inherit}
+.nav-btn:active:not(:disabled){transform:translate(3px,3px);box-shadow:0 0 0 var(--border)}
+.nav-btn:disabled{opacity:.3;cursor:default;box-shadow:var(--shadow-sm)}
+
+/* EMPTY */
+.empty{text-align:center;color:var(--muted);padding:60px 20px;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 class="app-title">Clinic Meds</h1>
+</div>
+
+<div class="ctrl-bar">
+  <div class="cat-wrap">
+    <button class="cat-btn" id="cat-btn" onclick="toggleCat(event)">All ▾</button>
+    <div class="cat-dropdown" id="cat-dropdown"></div>
+  </div>
+  <button class="shuffle-pill" id="shuffle-pill" onclick="toggleShuffle()">⇄ Shuffle</button>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-quiz" onclick="setMode('quiz')">Quiz</button>
+    <button class="mode-btn" id="btn-flash" onclick="setMode('flash')">Flashcards</button>
+  </div>
+</div>
+
+<div id="main"></div>
+<div id="result-sheet"></div>
+
+<script>
+const CATS = ['All','MSK Pain','ENT/Sinus/Cough-Cold','GI','Derm','Allergy'];
+
+const Q = [
+  // MSK PAIN
+  {cat:'MSK Pain',drug:'Ibuprofen (Motrin)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for ibuprofen?',
+   opts:['200 mg single / 1,200 mg max daily','400 mg single / 2,400 mg max daily','600 mg single / 3,200 mg max daily','800 mg single / 1,800 mg max daily'],
+   correct:2,explain:'600 mg per dose / 3,200 mg max daily. Note: OTC Motrin caps at 400 mg/dose and 1,200 mg/day — this 600 mg dose is provider-directed dosing.'},
+
+  {cat:'MSK Pain',drug:'Ibuprofen (Motrin)',type:'Indication',
+   q:'What is ibuprofen used for, and what type of medicine is it?',
+   opts:['An opioid painkiller','An NSAID — relieves pain, brings down fever, and reduces inflammation','An antihistamine for allergies','A muscle relaxant'],
+   correct:1,explain:'Ibuprofen is an NSAID (non-steroidal anti-inflammatory drug) — it relieves pain, reduces fever, and fights inflammation.'},
+
+  {cat:'MSK Pain',drug:'Naproxen (Aleve)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for naproxen?',
+   opts:['220 mg single / 660 mg max daily','500 mg single / 1,000 mg max daily','500 mg single / 1,500 mg max daily','550 mg single / 1,100 mg max daily'],
+   correct:1,explain:'500 mg per dose / 1,000 mg max daily. (OTC Aleve caps at 660 mg/day — this is Rx-strength dosing.)'},
+
+  {cat:'MSK Pain',drug:'Naproxen (Aleve)',type:'Indication',
+   q:'What is naproxen, and what is it used for?',
+   opts:['An NSAID — pain, fever, and inflammation relief','A laxative','An antihistamine','An acid reducer for the stomach'],
+   correct:0,explain:'Naproxen (Aleve) is an NSAID — relieves pain, reduces fever, and fights inflammation. Longer-acting than ibuprofen.'},
+
+  {cat:'MSK Pain',drug:'Celecoxib (Celebrex)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for celecoxib?',
+   opts:['100 mg single / 200 mg max daily','100 mg single / 400 mg max daily','200 mg single / 800 mg max daily','50 mg single / 400 mg max daily'],
+   correct:1,explain:'100 mg per dose / 400 mg max daily.'},
+
+  {cat:'MSK Pain',drug:'Celecoxib (Celebrex)',type:'Indication',
+   q:'What makes celecoxib different from ibuprofen and naproxen?',
+   opts:['It\'s an opioid, not an NSAID','It\'s a type of NSAID (COX-2 selective) that\'s generally easier on the stomach/GI tract','It\'s a steroid','It\'s a muscle relaxant'],
+   correct:1,explain:'Celecoxib (Celebrex) is a COX-2 selective NSAID — works like other NSAIDs but targets only the COX-2 enzyme, making it gentler on the stomach.'},
+
+  {cat:'MSK Pain',drug:'Acetaminophen (Tylenol)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for acetaminophen?',
+   opts:['500 mg single / 2,000 mg max daily','650 mg single / 3,000 mg max daily','1,000 mg single / 4,000 mg max daily','1,000 mg single / 6,000 mg max daily'],
+   correct:2,explain:'1,000 mg per dose / 4,000 mg max daily. Stay closer to 3,000 mg/day for patients who drink alcohol or have liver concerns.'},
+
+  {cat:'MSK Pain',drug:'Acetaminophen (Tylenol)',type:'Indication',
+   q:'What is acetaminophen used for, and what does it NOT do well compared to a drug like ibuprofen?',
+   opts:['It\'s an NSAID with strong anti-inflammatory effects','It relieves pain and fever but does very little for inflammation','It\'s an opioid painkiller','It\'s an antihistamine'],
+   correct:1,explain:'Acetaminophen (Tylenol) relieves pain and fever (analgesic/antipyretic) but has minimal anti-inflammatory effect — unlike NSAIDs like ibuprofen.'},
+
+  {cat:'MSK Pain',drug:'Cyclobenzaprine (Flexeril)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for cyclobenzaprine, and how long should it typically be used?',
+   opts:['5 mg single / 15 mg max daily / indefinitely','5–10 mg single / 30 mg max daily / short-term (2–3 weeks)','10 mg single / 60 mg max daily / indefinitely','15 mg single / 45 mg max daily / 6 weeks'],
+   correct:1,explain:'5–10 mg per dose / 30 mg max daily. Use short-term only (2–3 weeks) — not for long-term management.'},
+
+  {cat:'MSK Pain',drug:'Cyclobenzaprine (Flexeril)',type:'Indication',
+   q:'What is cyclobenzaprine used for, and how does it work?',
+   opts:['It\'s a muscle relaxant that acts on the brain/spinal cord to ease muscle spasm — not a direct muscle-acting drug','It\'s an NSAID for muscle pain','It\'s a nerve pain medication','It directly relaxes the muscle tissue itself'],
+   correct:0,explain:'Cyclobenzaprine (Flexeril) is a muscle relaxant that works centrally — it acts on the brain and spinal cord, not directly on muscle tissue.'},
+
+  {cat:'MSK Pain',drug:'Cyclobenzaprine (Flexeril)',type:'Pearl',
+   q:'Cyclobenzaprine is known for causing what side effect that could affect someone on duty?',
+   opts:['Increased alertness','Drowsiness/sedation','No noticeable effects','Dry cough'],
+   correct:1,explain:'Drowsiness/sedation is a major side effect — important to flag before giving it to anyone who needs to stay alert on duty.'},
+
+  {cat:'MSK Pain',drug:'Metaxalone (Skelaxin)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for metaxalone?',
+   opts:['400 mg single / 1,600 mg max daily','800 mg single / 2,400 mg max daily','800 mg single / 3,200 mg max daily','800 mg single / 4,000 mg max daily'],
+   correct:2,explain:'800 mg per dose / 3,200 mg max daily.'},
+
+  {cat:'MSK Pain',drug:'Metaxalone (Skelaxin)',type:'Indication',
+   q:'What is metaxalone used for, and why might you pick it over cyclobenzaprine or methocarbamol?',
+   opts:['It\'s a muscle relaxant that\'s less likely to make the patient drowsy — good if they need to stay functional','It\'s the strongest painkiller of the three','It\'s an NSAID','It\'s only for topical use'],
+   correct:0,explain:'Metaxalone (Skelaxin) is a muscle relaxant with less sedation than cyclobenzaprine or methocarbamol — a better pick when the patient needs to stay functional.'},
+
+  {cat:'MSK Pain',drug:'Methocarbamol (Robaxin)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for methocarbamol?',
+   opts:['500 mg single / 2,000 mg max daily','500 mg single / 4,000 mg max daily','750 mg single / 3,000 mg max daily','1,000 mg single / 4,000 mg max daily'],
+   correct:1,explain:'500 mg per dose / 4,000 mg max daily.'},
+
+  {cat:'MSK Pain',drug:'Methocarbamol (Robaxin)',type:'Pearl',
+   q:'Methocarbamol treats muscle spasm just like cyclobenzaprine and metaxalone. Which of those two is it most similar to in terms of drowsiness?',
+   opts:['Metaxalone — both are the "less sedating" option','Cyclobenzaprine — both are sedating','Neither — methocarbamol is a stimulant','It has no drowsiness effect at all, unlike either'],
+   correct:1,explain:'Methocarbamol (Robaxin) is sedating like cyclobenzaprine — both are more likely to cause drowsiness than metaxalone.'},
+
+  // ENT / SINUS / COUGH-COLD
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Flonase (fluticasone)',type:'Dosage',
+   q:'How often should Flonase be used?',
+   opts:['Every 4 hours as needed','Once daily','Every 12 hours','Twice daily as needed only'],
+   correct:1,explain:'Flonase (fluticasone) is used once daily — typically in the morning. It works best with consistent daily use.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Flonase (fluticasone)',type:'Indication',
+   q:'What is Flonase used for, and how does it work?',
+   opts:['It\'s a steroid nasal spray that reduces inflammation to relieve nasal allergies/congestion','It\'s a decongestant spray that constricts blood vessels','It\'s an antihistamine','It\'s an antibiotic nasal spray'],
+   correct:0,explain:'Flonase is a steroid nasal spray — it reduces inflammation in the nasal passages to relieve allergy symptoms and congestion over time.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Debrox (carbamide peroxide)',type:'Dosage',
+   q:'Debrox is dosed 5–10 drops in the affected ear twice daily. How many days in a row can it be used before you should stop and reassess?',
+   opts:['2 days','4 days','7 days','10 days'],
+   correct:1,explain:'Use for up to 4 days. If the problem isn\'t resolved after 4 days, stop and reassess — don\'t keep using it indefinitely.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Debrox (carbamide peroxide)',type:'Indication',
+   q:'What is Debrox used for?',
+   opts:['Treating an ear infection','Softening/breaking down earwax so it can be removed','Relieving ear pain','Treating a fungal ear infection'],
+   correct:1,explain:'Debrox (carbamide peroxide) softens and loosens earwax (cerumen) to make removal easier. It does not treat infections.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Pseudoephedrine (Sudafed)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for pseudoephedrine?',
+   opts:['30 mg single / 120 mg max daily','60 mg single / 240 mg max daily','60 mg single / 360 mg max daily','120 mg single / 480 mg max daily'],
+   correct:1,explain:'60 mg per dose / 240 mg max daily.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Pseudoephedrine (Sudafed)',type:'Indication',
+   q:'How does pseudoephedrine relieve nasal/sinus congestion?',
+   opts:['It shrinks swollen blood vessels in the nose (decongestant)','It blocks histamine','It thins mucus','It numbs the nasal passages'],
+   correct:0,explain:'Pseudoephedrine (Sudafed) is a decongestant — it constricts swollen blood vessels in the nasal passages to open them up.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Afrin (oxymetazoline)',type:'Dosage',
+   q:'What\'s the hard stop on how many days in a row Afrin can be used, and why?',
+   opts:['1 day — risk of severe allergic reaction','3 days — using it longer causes rebound congestion that\'s worse than the original problem','7 days — risk of nosebleeds','No limit — safe to use indefinitely'],
+   correct:1,explain:'3-day limit, firm. Using Afrin longer causes rebound congestion (rhinitis medicamentosa) — the nose ends up more stuffed than before you started.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Afrin (oxymetazoline)',type:'Indication',
+   q:'How does Afrin relieve nasal congestion?',
+   opts:['It shrinks swollen blood vessels in the nose (fast-acting decongestant)','It\'s a steroid that reduces inflammation over time','It\'s an antihistamine','It dries out mucus production'],
+   correct:0,explain:'Afrin (oxymetazoline) is a fast-acting decongestant — it directly constricts nasal blood vessels. Works in minutes, lasts several hours.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Cepacol (benzocaine/menthol)',type:'Dosage',
+   q:'How often can a Cepacol lozenge be repeated?',
+   opts:['Every 30 minutes','Every 2 hours as needed','Every 6 hours','Once daily'],
+   correct:1,explain:'Cepacol lozenges can be repeated every 2 hours as needed for sore throat relief.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Cepacol (benzocaine/menthol)',type:'Indication',
+   q:'How does a Cepacol lozenge relieve a sore throat?',
+   opts:['It\'s an antibiotic','It numbs the throat (local anesthetic) as it dissolves','It\'s an antitussive (cough suppressant)','It reduces swelling with a steroid'],
+   correct:1,explain:'Cepacol contains benzocaine (local anesthetic) and menthol — as the lozenge dissolves, it numbs the throat for temporary relief.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Tessalon Perles (benzonatate)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for Tessalon Perles?',
+   opts:['100 mg single / 300 mg max daily','100 mg single / 600 mg max daily','200 mg single / 600 mg max daily','100 mg single / 800 mg max daily'],
+   correct:1,explain:'100 mg per dose / 600 mg max daily.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Tessalon Perles (benzonatate)',type:'Indication',
+   q:'How does Tessalon Perles work to suppress a cough?',
+   opts:['It\'s an opioid that acts on the brain\'s cough center','It numbs the stretch receptors in the airway/lungs that trigger the urge to cough — it\'s not an opioid','It thins mucus so it\'s easier to cough up','It\'s an antihistamine'],
+   correct:1,explain:'Tessalon Perles (benzonatate) numbs the stretch receptors in the airways that trigger the cough reflex. It is not an opioid.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Tessalon Perles (benzonatate)',type:'Pearl',
+   q:'Why must Tessalon Perles always be swallowed whole — never chewed or dissolved in the mouth?',
+   opts:['It tastes bad','Chewing or dissolving it numbs the mouth and throat — real choking risk','It stains teeth','It won\'t work if chewed'],
+   correct:1,explain:'Swallow whole only. If chewed or dissolved, the drug numbs the mouth and throat immediately, creating a serious choking risk.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Mucinex D (guaifenesin/pseudoephedrine)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for Mucinex D?',
+   opts:['600 mg/60 mg single / 1,200 mg/120 mg max daily','1,200 mg/60 mg single / 2,400 mg/120 mg max daily','1,200 mg/120 mg single / 2,400 mg/240 mg max daily','1,200 mg/120 mg single / 1,200 mg/120 mg max daily (one tablet only)'],
+   correct:2,explain:'1 tablet = 1,200 mg guaifenesin + 120 mg pseudoephedrine. Maximum 2 tablets in 24 hours.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Mucinex D (guaifenesin/pseudoephedrine)',type:'Indication',
+   q:'What two things does Mucinex D do for a patient?',
+   opts:['Thins/loosens mucus (expectorant) AND relieves congestion (decongestant)','Suppresses cough AND relieves allergies','Kills bacteria AND relieves pain','Relieves congestion AND induces sleep'],
+   correct:0,explain:'Mucinex D is a combination: guaifenesin thins and loosens mucus (expectorant), pseudoephedrine relieves nasal congestion (decongestant).'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Mucinex DM (guaifenesin/dextromethorphan)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for Mucinex DM?',
+   opts:['600 mg/30 mg single / 1,200 mg/60 mg max daily','1,200 mg/60 mg single / 2,400 mg/120 mg max daily','600 mg/30 mg single / 2,400 mg/120 mg max daily','300 mg/15 mg single / 600 mg/30 mg max daily'],
+   correct:0,explain:'1 tablet = 600 mg guaifenesin + 30 mg dextromethorphan. Maximum 2 tablets in 24 hours.'},
+
+  {cat:'ENT/Sinus/Cough-Cold',drug:'Mucinex DM (guaifenesin/dextromethorphan)',type:'Indication',
+   q:'What two things does Mucinex DM do for a patient?',
+   opts:['Thins/loosens mucus (expectorant) AND suppresses cough (antitussive)','Relieves congestion AND treats allergies','Kills bacteria AND thins mucus','Suppresses cough AND relieves pain'],
+   correct:0,explain:'Mucinex DM is a combination: guaifenesin thins and loosens mucus (expectorant), dextromethorphan suppresses the cough reflex (antitussive).'},
+
+  // GI
+  {cat:'GI',drug:'Pepto-Bismol (bismuth subsalicylate)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum number of doses allowed in 24 hours for Pepto-Bismol?',
+   opts:['1 tablet (262 mg) single / 6 doses max daily','2 tablets (525 mg) single / 8 doses max daily','2 tablets (525 mg) single / 12 doses max daily','3 tablets single / 8 doses max daily'],
+   correct:1,explain:'2 tablets (525 mg) per dose / max 8 doses in 24 hours.'},
+
+  {cat:'GI',drug:'Pepto-Bismol (bismuth subsalicylate)',type:'Indication',
+   q:'What is Pepto-Bismol used for?',
+   opts:['Nausea, upset stomach, and diarrhea','Constipation','Heartburn only','Vomiting caused by chemotherapy'],
+   correct:0,explain:'Pepto-Bismol (bismuth subsalicylate) treats nausea, upset stomach, heartburn, indigestion, and diarrhea — a broad GI med.'},
+
+  {cat:'GI',drug:'Pepto-Bismol (bismuth subsalicylate)',type:'Pearl',
+   q:'A patient on Pepto-Bismol reports black stool and a black-coated tongue. What should you tell them?',
+   opts:['Stop immediately — it\'s a sign of GI bleeding','That\'s a harmless, expected effect of the medicine — not a sign of bleeding','Go to the ER right away','Switch to loperamide immediately'],
+   correct:1,explain:'Black stool and a black tongue are a known, harmless side effect of bismuth subsalicylate. Reassure the patient — it\'s not blood.'},
+
+  {cat:'GI',drug:'Zofran (ondansetron)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for Zofran, for general (non-chemo) use?',
+   opts:['4 mg single / 16 mg max daily','8 mg single / 16 mg max daily','8 mg single / 24 mg max daily','8 mg single / 32 mg max daily'],
+   correct:2,explain:'8 mg per dose / 24 mg max daily for general use. Higher doses are used in cancer-treatment protocols.'},
+
+  {cat:'GI',drug:'Zofran (ondansetron)',type:'Indication',
+   q:'What is Zofran used for?',
+   opts:['Nausea and vomiting','Diarrhea','Heartburn','Constipation'],
+   correct:0,explain:'Zofran (ondansetron) is an antiemetic — it prevents and treats nausea and vomiting.'},
+
+  {cat:'GI',drug:'Tums (calcium carbonate)',type:'Dosage',
+   q:'What is the accepted single dose and the approximate maximum daily dose for Tums?',
+   opts:['2–4 tablets single / 5,000 mg max daily','2–4 tablets single / 7,500 mg max daily','2–4 tablets single / 10,000 mg max daily','6 tablets single / 7,500 mg max daily'],
+   correct:1,explain:'2–4 tablets per dose / max ~7,500 mg calcium carbonate in 24 hours.'},
+
+  {cat:'GI',drug:'Tums (calcium carbonate)',type:'Indication',
+   q:'How does Tums relieve heartburn?',
+   opts:['It neutralizes stomach acid directly (antacid)','It blocks acid production over time','It coats the stomach lining','It speeds up digestion'],
+   correct:0,explain:'Tums (calcium carbonate) is an antacid — it neutralizes stomach acid on contact for quick relief. Does not prevent future acid production.'},
+
+  {cat:'GI',drug:'Omeprazole (Prilosec)',type:'Dosage',
+   q:'What is the standard dose of omeprazole, and when should it be taken?',
+   opts:['20 mg once daily, before breakfast','20 mg every 8 hours as needed','40 mg twice daily','10 mg once daily, at bedtime'],
+   correct:0,explain:'20 mg once daily, taken before breakfast. Timing matters — omeprazole works best when taken before eating.'},
+
+  {cat:'GI',drug:'Omeprazole (Prilosec)',type:'Indication',
+   q:'How does omeprazole work to treat reflux/GERD?',
+   opts:['It reduces the stomach\'s acid production at the source','It neutralizes acid that\'s already there, like an antacid','It coats and protects the esophagus','It speeds up stomach emptying'],
+   correct:0,explain:'Omeprazole (Prilosec) is a proton pump inhibitor (PPI) — it blocks the proton pump in stomach lining cells to reduce acid production at the source.'},
+
+  {cat:'GI',drug:'Omeprazole (Prilosec)',type:'Pearl',
+   q:'Why is omeprazole a poor choice for someone who needs quick relief of heartburn right now?',
+   opts:['It works instantly but wears off fast','It takes 1–4 days to reach its full effect','It causes rebound acid immediately','It must be taken with food to work at all'],
+   correct:1,explain:'Omeprazole takes 1–4 days to build up to full effect. For immediate relief, use an antacid like Tums instead.'},
+
+  {cat:'GI',drug:'Loperamide (Imodium)',type:'Dosage',
+   q:'What is the accepted initial dose and the maximum daily dose (OTC) for loperamide?',
+   opts:['2 mg initial / 4 mg max daily','4 mg initial / 8 mg max daily','4 mg initial / 16 mg max daily','2 mg initial / 8 mg max daily'],
+   correct:1,explain:'4 mg initial dose / 8 mg max daily (OTC limit). Do not exceed — high doses carry cardiac risk.'},
+
+  {cat:'GI',drug:'Loperamide (Imodium)',type:'Indication',
+   q:'How does loperamide help stop diarrhea?',
+   opts:['It slows down gut movement (motility)','It kills the bacteria causing it','It absorbs excess water in the gut','It\'s an antacid'],
+   correct:0,explain:'Loperamide (Imodium) slows gut motility — reducing how fast contents move through, which allows more water to be absorbed back in.'},
+
+  {cat:'GI',drug:'Miralax (polyethylene glycol 3350)',type:'Dosage',
+   q:'Miralax is dosed once daily. How many days can it be self-directed (OTC) before checking with a provider?',
+   opts:['3 days','7 days','14 days','30 days'],
+   correct:1,explain:'OTC use is self-directed for up to 7 days. If constipation isn\'t resolved, check with a provider.'},
+
+  {cat:'GI',drug:'Miralax (polyethylene glycol 3350)',type:'Indication',
+   q:'How does Miralax work to relieve constipation?',
+   opts:['It draws water into the colon to soften stool (osmotic laxative)','It stimulates the bowel wall directly','It\'s a fiber supplement','It\'s a stool softener/surfactant'],
+   correct:0,explain:'Miralax (PEG 3350) is an osmotic laxative — it draws water into the colon to soften stool and make it easier to pass. Usually takes 1–3 days.'},
+
+  {cat:'GI',drug:'Preparation H (phenylephrine)',type:'Dosage',
+   q:'How often can Preparation H be applied?',
+   opts:['Once daily only','Up to 4 times daily, especially after bowel movements','Every 6 hours exactly','Once weekly'],
+   correct:1,explain:'Apply up to 4 times daily, especially after each bowel movement and at bedtime.'},
+
+  {cat:'GI',drug:'Preparation H (phenylephrine)',type:'Indication',
+   q:'How does Preparation H relieve hemorrhoid symptoms?',
+   opts:['It shrinks swollen blood vessels (vasoconstrictor) to reduce pain, itching, and swelling','It numbs the area (local anesthetic)','It\'s a steroid that reduces inflammation','It\'s an antihistamine'],
+   correct:0,explain:'Preparation H contains phenylephrine, a vasoconstrictor that shrinks swollen blood vessels around hemorrhoids to reduce pain, itching, and swelling.'},
+
+  // DERM
+  {cat:'Derm',drug:'Hydrocortisone 1% (topical)',type:'Dosage',
+   q:'How often and for how long is 1% hydrocortisone applied?',
+   opts:['Once daily, up to 14 days','2–4x daily, up to 7 days','Once weekly','Every 2 hours, up to 3 days'],
+   correct:1,explain:'Apply 2–4 times daily for up to 7 days. Don\'t use longer than that on the face or in skin folds without provider guidance.'},
+
+  {cat:'Derm',drug:'Hydrocortisone 1% (topical)',type:'Indication',
+   q:'What is 1% hydrocortisone used for, and how does it work?',
+   opts:['A mild steroid cream that reduces itching and inflammation','An antibiotic ointment','An antifungal cream','A numbing cream'],
+   correct:0,explain:'1% hydrocortisone is a mild topical steroid — it reduces itching and inflammation from minor skin irritation, eczema, rashes, and insect bites.'},
+
+  {cat:'Derm',drug:'Bacitracin (topical antibiotic)',type:'Dosage',
+   q:'How often is bacitracin applied to a minor wound?',
+   opts:['Once daily','1–3x daily','Every 2 hours','Once weekly'],
+   correct:1,explain:'Apply 1–3 times daily to the wound area. Cover with a bandage to keep it clean.'},
+
+  {cat:'Derm',drug:'Bacitracin (topical antibiotic)',type:'Indication',
+   q:'Why do you put bacitracin on a minor cut, scrape, or burn?',
+   opts:['To relieve pain','To help prevent infection','To reduce scarring','To treat a fungal infection'],
+   correct:1,explain:'Bacitracin is a topical antibiotic — applied to minor wounds to help prevent bacterial infection. It does not treat existing infections or fungal problems.'},
+
+  {cat:'Derm',drug:'Terbinafine (Lamisil)',type:'Dosage',
+   q:'How long is a typical treatment course with terbinafine?',
+   opts:['3–5 days','1–4 weeks','2–3 months','A single application'],
+   correct:1,explain:'Typical course is 1–4 weeks depending on the location and severity of the fungal infection.'},
+
+  {cat:'Derm',drug:'Terbinafine (Lamisil)',type:'Indication',
+   q:'How does terbinafine treat things like athlete\'s foot or ringworm?',
+   opts:['It\'s an antifungal that kills the fungus causing the infection','It\'s a steroid that calms inflammation','It\'s an antibiotic','It\'s an antiviral'],
+   correct:0,explain:'Terbinafine (Lamisil) is an antifungal — it kills the dermatophyte fungus responsible for athlete\'s foot, ringworm, and jock itch.'},
+
+  {cat:'Derm',drug:'Terbinafine (Lamisil)',type:'Pearl',
+   q:'Why should a patient finish the full course of terbinafine even if the rash looks better after a few days?',
+   opts:['Insurance requires it','Stopping early risks the infection coming back','It needs time to build up before it starts working at all','There\'s no real reason — it\'s just a habit'],
+   correct:1,explain:'Stopping antifungals early — even when symptoms improve — risks the infection returning. Finish the full course.'},
+
+  // ALLERGY
+  {cat:'Allergy',drug:'Diphenhydramine (Benadryl)',type:'Dosage',
+   q:'What is the accepted single dose and the maximum daily dose for diphenhydramine?',
+   opts:['25–50 mg single / 150 mg max daily','25–50 mg single / 200 mg max daily','25–50 mg single / 300 mg max daily','25–50 mg single / 400 mg max daily'],
+   correct:2,explain:'25–50 mg per dose / 300 mg max daily.'},
+
+  {cat:'Allergy',drug:'Diphenhydramine (Benadryl)',type:'Indication',
+   q:'What is Benadryl used for, and what\'s the downside of taking it?',
+   opts:['It treats allergic reactions, itching, and hives — but it makes most people drowsy','It treats allergies with no side effects','It\'s a decongestant only','It\'s a steroid'],
+   correct:0,explain:'Diphenhydramine (Benadryl) is a first-generation antihistamine — effective for allergies, itching, and hives, but causes significant drowsiness in most people.'},
+
+  {cat:'Allergy',drug:'Loratadine (Claritin)',type:'Dosage',
+   q:'What is the standard adult dose of Claritin?',
+   opts:['5 mg twice daily','10 mg once daily','25 mg once daily','10 mg every 6 hours as needed'],
+   correct:1,explain:'10 mg once daily.'},
+
+  {cat:'Allergy',drug:'Loratadine (Claritin)',type:'Indication',
+   q:'What is Claritin used for, and why is it a good choice for someone who needs to stay alert?',
+   opts:['It treats seasonal/environmental allergies and doesn\'t cause drowsiness','It treats allergies but is very sedating','It\'s a decongestant','It\'s a steroid nasal spray'],
+   correct:0,explain:'Loratadine (Claritin) is a non-sedating second-generation antihistamine — effective for seasonal allergies without causing drowsiness.'},
+
+  {cat:'Allergy',drug:'Fexofenadine (Allegra)',type:'Dosage',
+   q:'What is the standard adult dose of Allegra?',
+   opts:['60 mg twice daily','90 mg once daily','180 mg once daily','180 mg twice daily'],
+   correct:2,explain:'180 mg once daily.'},
+
+  {cat:'Allergy',drug:'Fexofenadine (Allegra)',type:'Indication',
+   q:'What is Allegra used for, and why is it a good choice for someone who needs to stay alert?',
+   opts:['It treats seasonal/environmental allergies and doesn\'t cause drowsiness','It treats allergies but is very sedating','It\'s a decongestant','It\'s a steroid nasal spray'],
+   correct:0,explain:'Fexofenadine (Allegra) is a non-sedating second-generation antihistamine — great for daytime use when alertness matters.'},
+
+  {cat:'Allergy',drug:'Cetirizine (Zyrtec)',type:'Dosage',
+   q:'What is the standard adult dose of Zyrtec?',
+   opts:['5 mg twice daily','10 mg once daily','20 mg once daily','10 mg every 6 hours as needed'],
+   correct:1,explain:'10 mg once daily.'},
+
+  {cat:'Allergy',drug:'Cetirizine (Zyrtec)',type:'Indication',
+   q:'How does Zyrtec compare to Claritin and Allegra when it comes to drowsiness?',
+   opts:['It\'s exactly the same — none of the three cause any drowsiness','It can cause mild drowsiness in some people, unlike the other two','It\'s the most sedating antihistamine of all, worse than Benadryl','It\'s a decongestant, not an antihistamine'],
+   correct:1,explain:'Cetirizine (Zyrtec) can cause mild drowsiness in some people — it\'s non-sedating for most, but more likely to cause sedation than loratadine or fexofenadine.'},
+
+  {cat:'Allergy',drug:'Cetirizine (Zyrtec)',type:'Pearl',
+   q:'A soldier needs an antihistamine for seasonal allergies but has to stay sharp on duty — driving, weapons handling, etc. Which is the best first choice?',
+   opts:['Diphenhydramine (Benadryl)','Loratadine (Claritin) or Fexofenadine (Allegra) — non-sedating','Cetirizine (Zyrtec) — it\'s the strongest option','Any of them — sedation isn\'t a real factor'],
+   correct:1,explain:'For duty requiring full alertness, loratadine (Claritin) or fexofenadine (Allegra) are the safest choices — both are consistently non-sedating second-generation antihistamines.'}
+];
+
+let state = {
+  cat:'All', mode:'quiz', shuffle:false, pool:[],
+  qIdx:0, answered:false, lastCorrect:false, score:0, done:false,
+  fIdx:0, flipped:false
+};
+
+function buildPool() {
+  let q = state.cat === 'All' ? [...Q] : Q.filter(x => x.cat === state.cat);
+  if (state.shuffle) q = shuffleArr(q);
+  state.pool = q;
+}
+
+function shuffleArr(a) {
+  a = [...a];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function setMode(m) {
+  state.mode = m;
+  resetProgress();
+  buildPool();
+  render();
+}
+
+function setCat(c) {
+  state.cat = c;
+  resetProgress();
+  buildPool();
+  closeCat();
+  render();
+}
+
+function resetProgress() {
+  state.qIdx = 0; state.answered = false; state.lastCorrect = false;
+  state.score = 0; state.done = false; state.fIdx = 0; state.flipped = false;
+  document.getElementById('result-sheet').classList.remove('show');
+}
+
+function toggleShuffle() {
+  state.shuffle = !state.shuffle;
+  resetProgress();
+  buildPool();
+  render();
+}
+
+function toggleCat(e) {
+  e && e.stopPropagation();
+  document.getElementById('cat-dropdown').classList.toggle('open');
+}
+
+function closeCat() {
+  document.getElementById('cat-dropdown').classList.remove('open');
+}
+
+function updateHeader() {
+  document.getElementById('cat-btn').textContent = state.cat + ' ▾';
+  document.getElementById('btn-quiz').classList.toggle('active', state.mode === 'quiz');
+  document.getElementById('btn-flash').classList.toggle('active', state.mode === 'flash');
+  document.getElementById('shuffle-pill').classList.toggle('on', state.shuffle);
+  document.getElementById('shuffle-pill').textContent = state.shuffle ? '⇄ Shuffled' : '⇄ Shuffle';
+
+  // Populate dropdown
+  const dd = document.getElementById('cat-dropdown');
+  dd.innerHTML = CATS.map(c =>
+    `<div class="cat-item${state.cat === c ? ' active' : ''}" onclick="setCat('${c}')">${c}</div>`
+  ).join('');
+}
+
+function render() {
+  updateHeader();
+  if (state.mode === 'quiz') renderQuiz();
+  else renderFlash();
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────
+function renderQuiz() {
+  const el = document.getElementById('main');
+  const pool = state.pool;
+
+  if (pool.length === 0) {
+    el.innerHTML = '<p class="empty">No questions in this category.</p>';
+    return;
+  }
+
+  if (state.done) {
+    const pct = Math.round((state.score / pool.length) * 100);
+    const msg = pct >= 80 ? 'Solid work.' : pct >= 60 ? 'Getting there — keep going.' : 'Keep studying.';
+    el.innerHTML = `
+      <div class="score-wrap">
+        <div class="score-big">${state.score}/${pool.length}</div>
+        <div class="score-pct">${pct}%</div>
+        <p class="score-msg">${msg}</p>
+        <button class="restart-btn" onclick="restartQuiz()">Try Again</button>
+      </div>`;
+    return;
+  }
+
+  const q = pool[state.qIdx];
+  el.innerHTML = `
+    <div class="q-meta">
+      <span class="q-counter">Q ${state.qIdx + 1} / ${pool.length}</span>
+      <span class="q-score">Score: ${state.score}</span>
+    </div>
+    <div class="quiz-card">
+      <div>
+        <span class="q-drug">${q.drug}</span>
+        <span class="q-type">${q.type}</span>
+      </div>
+      <div class="q-text">${q.q}</div>
+      ${q.opts.map((opt, i) => `
+        <button class="opt-btn" id="opt-${i}" onclick="answerQuiz(${i})">
+          <span class="opt-letter">${['A','B','C','D'][i]}</span>
+          <span>${opt}</span>
+        </button>`).join('')}
+    </div>`;
+}
+
+function answerQuiz(i) {
+  if (state.answered) return;
+  const q = state.pool[state.qIdx];
+  const correct = i === q.correct;
+  state.answered = true;
+  state.lastCorrect = correct;
+  if (correct) state.score++;
+
+  q.opts.forEach((_, idx) => {
+    const btn = document.getElementById('opt-' + idx);
+    if (!btn) return;
+    if (idx === q.correct) btn.classList.add('correct');
+    else if (idx === i) btn.classList.add('wrong');
+    btn.onclick = null;
+  });
+
+  const isLast = state.qIdx >= state.pool.length - 1;
+  const sheet = document.getElementById('result-sheet');
+  sheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-badge ${correct ? 'correct' : 'wrong'}">${correct ? '✓ Got it!' : '✗ Not quite'}</div>
+    <div class="sheet-explain">${q.explain}</div>
+    <button class="sheet-continue ${correct ? 'correct' : 'wrong'}" onclick="nextQuestion()">
+      ${isLast ? 'See Score' : 'Next →'}
+    </button>`;
+  sheet.classList.add('show');
+}
+
+function nextQuestion() {
+  const sheet = document.getElementById('result-sheet');
+  sheet.classList.remove('show');
+  const pool = state.pool;
+  if (state.qIdx < pool.length - 1) {
+    state.qIdx++;
+    state.answered = false;
+    state.lastCorrect = false;
+    setTimeout(() => renderQuiz(), 320);
+  } else {
+    state.done = true;
+    setTimeout(() => renderQuiz(), 320);
+  }
+}
+
+function restartQuiz() {
+  state.qIdx = 0; state.answered = false; state.score = 0;
+  state.done = false; state.lastCorrect = false;
+  buildPool();
+  renderQuiz();
+}
+
+// ─── FLASHCARD ───────────────────────────────────────────────
+function renderFlash() {
+  const el = document.getElementById('main');
+  const pool = state.pool;
+
+  if (pool.length === 0) {
+    el.innerHTML = '<p class="empty">No cards in this category.</p>';
+    return;
+  }
+
+  const q = pool[state.fIdx];
+  el.innerHTML = `
+    <div class="f-counter">${state.fIdx + 1} / ${pool.length}</div>
+    <div class="f-card" id="f-card" onclick="flipCard()">
+      <div class="f-card-inner${state.flipped ? ' flipped' : ''}" id="f-inner">
+        <div class="f-front">
+          <div class="f-drug-tag">${q.drug}</div>
+          <div class="f-type-tag">${q.type}</div>
+          <div class="f-question">${q.q}</div>
+          <div class="f-hint">Tap to reveal answer</div>
+        </div>
+        <div class="f-back">
+          <div class="f-answer-label">// Answer</div>
+          <div class="f-answer">${q.opts[q.correct]}</div>
+          <div class="f-explain">${q.explain}</div>
+          <div class="f-hint">Tap to flip back</div>
+        </div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="nav-btn" onclick="prevCard(event)" ${state.fIdx === 0 ? 'disabled' : ''}>← Prev</button>
+      <button class="nav-btn" onclick="nextCard(event)" ${state.fIdx === pool.length - 1 ? 'disabled' : ''}>Next →</button>
+    </div>`;
+}
+
+function flipCard() {
+  const inner = document.getElementById('f-inner');
+  if (!inner) return;
+  state.flipped = !state.flipped;
+  inner.classList.toggle('flipped', state.flipped);
+}
+
+function prevCard(e) {
+  e && e.stopPropagation();
+  if (state.fIdx > 0) { state.fIdx--; state.flipped = false; renderFlash(); }
+}
+
+function nextCard(e) {
+  e && e.stopPropagation();
+  if (state.fIdx < state.pool.length - 1) { state.fIdx++; state.flipped = false; renderFlash(); }
+}
+
+// close dropdown on outside click
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('cat-dropdown').contains(e.target) &&
+      e.target.id !== 'cat-btn') {
+    closeCat();
+  }
+});
+
+// Init
+buildPool();
+render();
+</script>
+</body>
+</html>
